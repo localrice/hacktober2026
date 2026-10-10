@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Seismic Vulnerability Reporting{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 380px;">
+    
+    <div class="border p-4 bg-white mb-3">
+        <h1 class="h5 fw-semibold text-dark mb-3">Register</h1>
+
+        <form method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label for="email" class="form-label small text-secondary">Email</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" required autofocus autocomplete="email">
+            </div>
+
+            <div class="mb-3">
+                <label for="role" class="form-label small text-secondary">Account Type</label>
+                <select class="form-select" id="role" name="role" required>
+                    <option value="user" {% if role == 'user' or not role %}selected{% endif %}>User</option>
+                    <option value="engineer" {% if role == 'engineer' %}selected{% endif %}>Engineer</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label small text-secondary">Password</label>
+                <input type="password" class="form-control" id="password" name="password" minlength="8" required autocomplete="new-password">
+            </div>
+
+            <div class="mb-3">
+                <label for="confirm_password" class="form-label small text-secondary">Confirm Password</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="8" required autocomplete="new-password">
+            </div>
+
+            <button type="submit" class="btn btn-dark w-100 py-2">
+                Register
+            </button>
+        </form>
+    </div>
+
+    <div class="text-center small">
+        <span class="text-muted">Already registered?</span>
+        <a href="{{ url_for('login') }}" class="text-dark">Sign In</a>
+    </div>
+
+</div>
+{% endblock %}

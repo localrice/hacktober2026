@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Previous Reports - Seismic Vulnerability Reporting{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 720px;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h5 m-0 fw-semibold text-dark">Previous Reports</h1>
+        <div class="d-flex gap-3 small">
+            <a href="{{ url_for('index') }}" class="text-secondary text-decoration-none">New Report</a>
+            <a href="{{ url_for('logout') }}" class="text-secondary text-decoration-none">Logout</a>
+        </div>
+    </div>
+
+    {% if reports and reports | length > 0 %}
+        <div class="border border-bottom-0 bg-white">
+            {% for rep in reports %}
+                <a href="{{ url_for('view_report', report_id=rep.id) }}" class="d-flex align-items-center p-3 border-bottom text-decoration-none text-dark hover-bg-surface">
+                    <!-- Image Thumbnail -->
+                    <div style="width: 56px; height: 56px; flex-shrink: 0;" class="border bg-light overflow-hidden me-3">
+                        {% if rep.primary_image %}
+                            <img src="{{ url_for('uploaded_file', filename=rep.primary_image) }}" alt="Thumbnail" class="w-100 h-100 object-fit-cover">
+                        {% else %}
+                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">—</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Summary & Submission Date -->
+                    <div class="flex-grow-1 min-w-0 me-3">
+                        <div class="text-truncate fw-medium small mb-1">
+                            {{ rep.summary or rep.analysis_summary or 'Report ' ~ rep.id }}
+                        </div>
+                        <div class="text-muted small font-mono" style="font-size: 0.75rem;">
+                            {{ rep.created_at[:10] }}
+                        </div>
+                    </div>
+
+                    <!-- Safety Score -->
+                    <div class="text-end flex-shrink-0">
+                        <span class="small text-muted d-block" style="font-size: 0.7rem;">Score</span>
+                        <span class="fw-semibold small">
+                            {{ rep.safety_score if rep.safety_score is not none else '—' }} / 10
+                        </span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="border p-4 text-center bg-white text-muted small">
+            No reports submitted yet.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

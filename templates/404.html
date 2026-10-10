@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Not Found (404) - Seismic Vulnerability Reporting{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center" style="max-width: 480px;">
+    <div class="border p-4 bg-white">
+        <h1 class="h5 fw-semibold text-dark mb-2">Not Found (404)</h1>
+        <p class="text-secondary small mb-4">
+            The requested page or report could not be found.
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+            {% if current_user.is_authenticated and current_user.role == 'engineer' %}
+                <a href="{{ url_for('engineer_view') }}" class="btn btn-dark">Active Incidents</a>
+            {% else %}
+                <a href="{{ url_for('index') }}" class="btn btn-dark">Reporting</a>
+            {% endif %}
+            <a href="{{ url_for('list_reports') }}" class="btn btn-outline-dark">Previous Reports</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

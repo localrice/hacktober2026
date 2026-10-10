@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}{% if view_mode == 'past' %}Past Incidents{% else %}Active Incidents{% endif %} - Incident Management{% endblock %}
+
+{% block content %}
+<div class="engineer-layout">
+    
+    <!-- Main Area: Incident Map -->
+    <div class="engineer-map-pane d-flex flex-column">
+        <!-- Text Legend for Marker Colors -->
+        <div class="bg-white border-bottom px-3 py-2 small d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-secondary fw-semibold">Marker Risk Legend:</span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="legend-dot" style="background-color: #dc2626;"></span> Red (1–3)
+                </span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="legend-dot" style="background-color: #ea580c;"></span> Orange (4–6)
+                </span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="legend-dot" style="background-color: #16a34a;"></span> Green (7–10)
+                </span>
+                <span class="d-flex align-items-center gap-1">
+                    <span class="legend-dot" style="background-color: #64748b;"></span> Gray (Unscored)
+                </span>
+            </div>
+            <div class="text-muted font-mono" style="font-size: 0.75rem;">
+                {{ reports | length }} Incident{% if reports | length != 1 %}s{% endif %}
+            </div>
+        </div>
+
+        <div id="engineerMap" class="flex-grow-1" style="min-height: 400px; width: 100%;"></div>
+    </div>
+
+    <!-- Side Panel: Incident List and Selected Incident Details -->
+    <div class="engineer-side-pane p-3 d-flex flex-column gap-3">
+        
+        <!-- Navigation View Switcher -->
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2">
+            <h2 class="h6 m-0 fw-semibold text-dark">
+                {% if view_mode == 'past' %}Past Incidents{% else %}Active Incidents{% endif %}
+            </h2>
+            <div class="d-flex gap-2 small">
+                <a href="{{ url_for('engineer_view', view='active') }}" class="{% if view_mode == 'active' %}fw-bold text-dark{% else %}text-secondary{% endif %} text-decoration-none">
+                    Active ({{ incident_counts.active }})
+                </a>
+                <span class="text-muted">|</span>
+                <a href="{{ url_for('engineer_view', view='past') }}" class="{% if view_mode == 'past' %}fw-bold text-dark{% else %}text-secondary{% endif %} text-decoration-none">
+                    Past ({{ incident_counts.past }})
+                </a>
+            </div>
+        </div>
+
+        <!-- Selected Incident Details Panel -->
+        <div id="selectedIncidentPanel" class="border p-3 bg-white">
+            <span class="text-muted small d-block mb-1">Selected Incident</span>
+            <div id="noSelectionMessage" class="text-secondary small py-3 text-center">
+                Select an incident row or map marker to view details.
+            </div>
+
+            <div id="detailsContent" class="d-none">
+                <!-- Report ID & Status Controls -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="small font-mono text-muted" id="detailId"></span>
+                        <div class="small fw-semibold text-dark" id="detailAction"></div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end gap-1">
+                        <select id="detailStatusSelect" class="form-select form-select-sm" style="width: 120px;" onchange="updateSelectedStatus(this.value)">
+                            <option value="not_done">Not Done</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Score and Timestamp -->
+                <div class="d-flex justify-content-between align-items-center border-top border-bottom py-1.5 my-2 small">
+                    <div>
+                        <span class="text-muted">Safety Score:</span>
+                        <strong id="detailScore" class="ms-1"></strong>
+                    </div>
+                    <div>
+                        <span class="text-muted font-mono" id="detailTimestamp" style="font-size: 0.75rem;"></span>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div class="small text-muted mb-2 font-mono" style="font-size: 0.75rem;">
+                    Location: <span id="detailLocation" class="text-dark"></span>
+                </div>
+
+                <!-- AI Summary -->
+                <div class="small text-dark mb-3" id="detailSummary" style="line-height: 1.5;"></div>
+
+                <!-- Existing Submitted Images -->
+                <div class="mb-1">
+                    <span class="text-muted small d-block mb-1">Submitted Images</span>
+                    <div id="detailImagesTray" class="d-flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compact Incident List -->
+        <div class="border bg-white flex-grow-1 overflow-auto">
+            <div class="p-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+                <span class="small fw-semibold text-secondary">Incident List</span>
+                <span class="small text-muted font-mono">{{ reports | length }} total</span>
+            </div>
+
+            {% if reports and reports | length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incidentsTableBody">
+                            {% for r in reports %}
+                            <tr id="row-{{ r.id }}" class="incident-row" onclick="selectIncident('{{ r.id }}')">
+                                <td class="font-mono text-dark">{{ r.id }}</td>
+                                <td>
+                                    <strong>{{ r.safety_score if r.safety_score is not none else '—' }}</strong>
+                                </td>
+                                <td>
+                                    <span id="list-status-{{ r.id }}" class="badge {% if r.work_status == 'done' %}bg-success{% elif r.work_status == 'in_progress' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                        {% if r.work_status == 'done' %}Done{% elif r.work_status == 'in_progress' %}In Progress{% else %}Not Done{% endif %}
+                                    </span>
+                                </td>
+                                <td class="font-mono text-muted" style="font-size: 0.75rem;">
+                                    {{ r.created_at[:10] }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-4 text-center text-muted small">
+                    No incidents in this view.
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    const currentViewMode = {{ view_mode | tojson }};
+    const reportsData = [
+        {% for r in reports %}
+        {
+            id: {{ r.id | tojson }},
+            latitude: {{ r.latitude if r.latitude is not none else 'null' }},
+            longitude: {{ r.longitude if r.longitude is not none else 'null' }},
+            workStatus: {{ (r.work_status or 'not_done') | tojson }},
+            score: {{ r.safety_score if r.safety_score is not none else 'null' }},
+            action: {{ (r.recommended_action or 'Pending Evaluation') | tojson }},
+            summary: {{ (r.summary or r.analysis_summary or 'No summary') | tojson }},
+            timestamp: {{ (r.created_at[:16].replace('T', ' ')) | tojson }},
+            images: {{ (r.all_images or []) | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    let map = null;
+    const markers = {};
+    let selectedReportId = null;
+
+    function getRiskColor(score) {
+        if (score === null || score === undefined || isNaN(score) || score === '' || score === '—') {
+            return '#64748b'; // Gray: missing / invalid
+        }
+        const num = Number(score);
+        if (num >= 1 && num <= 3) return '#dc2626'; // Red: scores 1-3
+        if (num >= 4 && num <= 6) return '#ea580c'; // Orange: scores 4-6
+        if (num >= 7 && num <= 10) return '#16a34a'; // Green: scores 7-10
+        return '#64748b';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const defaultCenter = [26.1445, 91.7362];
+        map = L.map('engineerMap').setView(defaultCenter, 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const bounds = [];
+
+        reportsData.forEach(r => {
+            if (r.latitude !== null && r.longitude !== null) {
+                const lat = r.latitude;
+                const lon = r.longitude;
+                bounds.push([lat, lon]);
+
+                const marker = L.circleMarker([lat, lon], {
+                    radius: 7,
+                    fillColor: getRiskColor(r.score),
+                    color: '#ffffff',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.95
+                }).addTo(map);
+
+                marker.on('click', () => {
+                    selectIncident(r.id, false);
+                });
+
+                markers[r.id] = marker;
+            }
+        });
+
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+        }
+
+        // Auto-select first incident if available
+        if (reportsData.length > 0) {
+            selectIncident(reportsData[0].id, false);
+        }
+    });
+
+    window.selectIncident = function(reportId, panMap = true) {
+        selectedReportId = reportId;
+        const rep = reportsData.find(r => r.id === reportId);
+        if (!rep) return;
+
+        // Highlight table row
+        document.querySelectorAll('.incident-row').forEach(row => row.classList.remove('table-active'));
+        const row = document.getElementById(`row-${reportId}`);
+        if (row) {
+            row.classList.add('table-active');
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Update details panel
+        document.getElementById('noSelectionMessage').classList.add('d-none');
+        document.getElementById('detailsContent').classList.remove('d-none');
+
+        document.getElementById('detailId').textContent = `Report #${rep.id}`;
+        document.getElementById('detailAction').textContent = rep.action;
+        document.getElementById('detailScore').textContent = `${rep.score !== null ? rep.score : '—'} / 10`;
+        document.getElementById('detailTimestamp').textContent = rep.timestamp;
+        document.getElementById('detailLocation').textContent = (rep.latitude && rep.longitude)
+            ? `${rep.latitude.toFixed(4)}, ${rep.longitude.toFixed(4)}`
+            : 'GPS Unavailable';
+        document.getElementById('detailSummary').textContent = rep.summary;
+        document.getElementById('detailStatusSelect').value = rep.workStatus;
+
+        // Images tray
+        const imagesTray = document.getElementById('detailImagesTray');
+        imagesTray.innerHTML = '';
+        if (rep.images && rep.images.length > 0) {
+            rep.images.forEach(img => {
+                const div = document.createElement('div');
+                div.style.width = '70px';
+                div.style.height = '55px';
+                div.className = 'border bg-light overflow-hidden';
+                div.innerHTML = `<img src="/uploads/${img}" alt="Damage image" class="w-100 h-100 object-fit-cover">`;
+                imagesTray.appendChild(div);
+            });
+        } else {
+            imagesTray.innerHTML = '<span class="text-muted small">No images</span>';
+        }
+
+        // Pan map if marker exists
+        if (panMap && markers[reportId] && map) {
+            map.setView(markers[reportId].getLatLng(), 15, { animate: true });
+        }
+    };
+
+    window.updateSelectedStatus = function(newStatus) {
+        if (!selectedReportId) return;
+        const reportId = selectedReportId;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        fetch(`/report/${reportId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ work_status: newStatus })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Status update failed');
+            return response.json();
+        })
+        .then(data => {
+            const shouldMoveOut = (currentViewMode === 'active' && newStatus === 'done') ||
+                                  (currentViewMode === 'past' && newStatus !== 'done');
+
+            if (shouldMoveOut) {
+                // Remove marker and row
+                if (markers[reportId]) {
+                    map.removeLayer(markers[reportId]);
+                    delete markers[reportId];
+                }
+                const row = document.getElementById(`row-${reportId}`);
+                if (row) row.remove();
+
+                // Clear selection
+                document.getElementById('detailsContent').classList.add('d-none');
+                document.getElementById('noSelectionMessage').classList.remove('d-none');
+                selectedReportId = null;
+
+                const remaining = document.querySelectorAll('.incident-row');
+                if (remaining.length > 0) {
+                    const nextId = remaining[0].id.replace('row-', '');
+                    selectIncident(nextId);
+                }
+            } else {
+                const rep = reportsData.find(r => r.id === reportId);
+                if (rep) rep.workStatus = newStatus;
+
+                const badge = document.getElementById(`list-status-${reportId}`);
+                if (badge) {
+                    badge.className = `badge ${newStatus === 'done' ? 'bg-success' : newStatus === 'in_progress' ? 'bg-primary' : 'bg-secondary'}`;
+                    badge.textContent = newStatus === 'done' ? 'Done' : newStatus === 'in_progress' ? 'In Progress' : 'Not Done';
+                }
+            }
+        })
+        .catch(err => {
+            alert('Could not update status: ' + err.message);
+        });
+    };
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Seismic Vulnerability Reporting{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 380px;">
+    
+    <div class="border p-4 bg-white mb-3">
+        <h1 class="h5 fw-semibold text-dark mb-3">Sign In</h1>
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+
+            <div class="mb-3">
+                <label for="email" class="form-label small text-secondary">Email</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" required autofocus autocomplete="email">
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label small text-secondary">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-dark w-100 py-2">
+                Sign In
+            </button>
+        </form>
+    </div>
+
+    <div class="text-center small">
+        <span class="text-muted">Need an account?</span>
+        <a href="{{ url_for('register') }}" class="text-dark">Register</a>
+    </div>
+
+</div>
+{% endblock %}
