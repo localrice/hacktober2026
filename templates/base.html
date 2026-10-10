@@ -11,6 +11,9 @@
     <!-- Leaflet.js Map CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -21,8 +24,9 @@
     <!-- Minimal Header Navigation -->
     <header class="navbar border-bottom py-2">
         <div class="container-fluid px-3 d-flex align-items-center justify-content-between">
-            <a class="navbar-brand text-decoration-none fw-semibold text-dark m-0" href="{% if current_user.is_authenticated and current_user.role == 'engineer' %}{{ url_for('engineer_view') }}{% else %}{{ url_for('index') }}{% endif %}">
-                Seismic Vulnerability Reporting
+            <a class="navbar-brand text-decoration-none fw-semibold text-dark m-0 d-flex align-items-center gap-2" href="{% if current_user.is_authenticated and current_user.role == 'engineer' %}{{ url_for('engineer_view') }}{% else %}{{ url_for('index') }}{% endif %}">
+                <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo" width="24" height="24" class="d-inline-block object-fit-contain">
+                <span>Seismic Vulnerability Reporting</span>
             </a>
 
             <!-- Navigation Links -->

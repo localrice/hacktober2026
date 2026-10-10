@@ -6,7 +6,10 @@
 <div class="container py-5" style="max-width: 380px;">
     
     <div class="border p-4 bg-white mb-3">
-        <h1 class="h5 fw-semibold text-dark mb-3">Register</h1>
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <img src="{{ url_for('static', filename='icon.png') }}" alt="Logo" width="28" height="28" class="object-fit-contain">
+            <h1 class="h5 fw-semibold text-dark m-0">Register</h1>
+        </div>
 
         <form method="POST" action="{{ url_for('register') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
