@@ -13,6 +13,7 @@ class Config:
     # Flask Core & Security
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", os.getenv("SECRET_KEY", "seismic-vulnerability-dev-secret-key-2026"))
     DEBUG = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1", "yes")
+    PORT = int(os.getenv("PORT", 5500))
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() in ("true", "1", "yes")

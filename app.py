@@ -709,4 +709,5 @@ def request_entity_too_large(error):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=Config.DEBUG)
+    port = int(os.getenv("PORT", 5500))
+    app.run(host="0.0.0.0", port=port, debug=Config.DEBUG)
